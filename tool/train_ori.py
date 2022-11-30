@@ -21,7 +21,6 @@ from tensorboardX import SummaryWriter
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),".."))
 from util import config
 from util.s3dis import S3DIS
-from util.circuitnet import CIRCUITNET
 from util.common_util import AverageMeter, intersectionAndUnionGPU, find_free_port
 from util.data_util import collate_fn
 from util import transform as t
@@ -29,7 +28,7 @@ from util import transform as t
 
 def get_parser():
     parser = argparse.ArgumentParser(description='PyTorch Point Cloud Semantic Segmentation')
-    parser.add_argument('--config', type=str, default='config/circuitnet/circuitnet_pointtransformer_repro.yaml', help='config file')
+    parser.add_argument('--config', type=str, default='config/s3dis/s3dis_pointtransformer_repro.yaml', help='config file')
     parser.add_argument('opts', help='see config/s3dis/s3dis_pointtransformer_repro.yaml for all options', default=None, nargs=argparse.REMAINDER)
     args = parser.parse_args()
     assert args.config is not None
@@ -79,9 +78,9 @@ def main():
         args.distributed = False
         args.multiprocessing_distributed = False
 
-    if args.data_name == 'circuit':
-        CIRCUITNET(split='train', data_root=args.data_root)
-        # CIRCUITNET(split='val', data_root=args.data_root)
+    if args.data_name == 's3dis':
+        S3DIS(split='train', data_root=args.data_root, test_area=args.test_area)
+        S3DIS(split='val', data_root=args.data_root, test_area=args.test_area)
     else:
         raise NotImplementedError()
     if args.multiprocessing_distributed:
@@ -103,8 +102,8 @@ def main_worker(gpu, ngpus_per_node, argss):
             args.rank = args.rank * ngpus_per_node + gpu
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank)
 
-    if args.arch == 'pointtransformer_gpdl_repro':
-        from model.pointtransformer_gpdl.pointtransformer_seg_gpdl import pointtransformer_seg_repro as Model
+    if args.arch == 'pointtransformer_seg_repro':
+        from model.pointtransformer.pointtransformer_seg import pointtransformer_seg_repro as Model
     else:
         raise Exception('architecture not supported yet'.format(args.arch))
     model = Model(c=args.fea_dim, k=args.classes)
@@ -166,7 +165,7 @@ def main_worker(gpu, ngpus_per_node, argss):
                 logger.info("=> no checkpoint found at '{}'".format(args.resume))
 
     train_transform = t.Compose([t.RandomScale([0.9, 1.1]), t.ChromaticAutoContrast(), t.ChromaticTranslation(), t.ChromaticJitter(), t.HueSaturationTranslation()])
-    train_data = CIRCUITNET(split='train', data_root=args.data_root, voxel_size=args.voxel_size, voxel_max=args.voxel_max, transform=train_transform, shuffle_index=True, loop=args.loop)
+    train_data = S3DIS(split='train', data_root=args.data_root, test_area=args.test_area, voxel_size=args.voxel_size, voxel_max=args.voxel_max, transform=train_transform, shuffle_index=True, loop=args.loop)
     if main_process():
             logger.info("train_data samples: '{}'".format(len(train_data)))
     if args.distributed:
