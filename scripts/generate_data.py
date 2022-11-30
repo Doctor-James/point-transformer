@@ -37,22 +37,23 @@ def count_area(filename):
 
 def trans2npy(filename):
     root_path = '/horizon-bucket/BasicAlgorithm/Users/jialv.zou/CircuitNet/CircuitNet/graph_features_new2/instance_placement/'
-    output_dir = '/home/users/jialv.zou/datasets/congestion_point/point_cloud/x_y_area/'
+    output_dir = '/home/users/jialv.zou/datasets/congestion_point/point_cloud/xywh/'
     output_path = output_dir + filename
     input_path = root_path + filename
     instance_placement = np.load(input_path, allow_pickle=True).item()
-    point3ds = np.empty(shape=[1,3])
+    point3ds = np.empty(shape=[1,4])
     for key, value in instance_placement.items():
         yt = value[0]
         xl = value[1]
         yb = value[2]
         xr = value[3]
+        width = (xr-xl)
+        height = (yb-yt)
         center_x = (xr + xl)/2
         center_y = (yb + yt)/2
-        area = abs((yt-yb)*(xr-xl))
-        area = area
+        area = abs(width*height)
         if area <80:
-            point3d = np.array([center_x,center_y,area])
+            point3d = np.array([center_x,center_y,width,height])
             point3d = np.expand_dims(point3d,axis=0)
             point3ds = np.append(point3ds,point3d,axis=0)
 
@@ -95,7 +96,7 @@ if __name__ == '__main__':
 
     #点云转换
     root_path = '/horizon-bucket/BasicAlgorithm/Users/jialv.zou/CircuitNet/CircuitNet/graph_features_new2/instance_placement/'
-    output_path = '/home/users/jialv.zou/datasets/congestion_point/point_cloud/x_y_area/'
+    output_path = '/home/users/jialv.zou/datasets/congestion_point/point_cloud/xywh/'
     filename = os.listdir(root_path)
 
     begin_time = time.time()
